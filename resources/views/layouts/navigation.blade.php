@@ -15,6 +15,11 @@
                     <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
                         {{ __('Contribuyentes') }}
                     </x-nav-link>
+                    @can('view user')
+                        <x-nav-link :href="route('usuarios')" :active="request()->routeIs('usuarios')">
+                            {{ __('Usuarios') }}
+                        </x-nav-link>
+                    @endcan
                 </div>
             </div>
 

@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Contribuyente; // Asegúrate de importar el modelo
+use App\Models\Contribuyente; 
+use App\Http\Requests\StoreContribuyenteRequest;
 use Illuminate\Http\Request;
+use App\Helpers\EmailValidator;
+use App\Helpers\LetterCounter;
 
 class ContribuyenteController extends Controller
 {
@@ -21,24 +24,25 @@ class ContribuyenteController extends Controller
      */
     public function create()
     {
-        return view('contribuyentes.create');
+        $usuario = auth()->user()->name; 
+        return view('contribuyentes.create', compact('usuario'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        Contribuyente::create($request->all());
-        return redirect()->route('contribuyentes.index');
-    }
+    
 
     /**
      * Display the specified resource.
      */
     public function show(string $id)
     {
-        return view('contribuyentes.show', compact('contribuyente'));
+        $contribuyente = Contribuyente::find($id);
+        // Combinar nombres y apellidos y contar letras
+        $nombreCompleto = $contribuyente->nombres . ' ' . $contribuyente->apellidos;
+        $letterCounts = LetterCounter::countLetters($nombreCompleto);
+        if (!$contribuyente) {
+            return redirect()->route('home');
+        }
+        return view('contribuyentes.show',compact('contribuyente', 'letterCounts'));
     }
 
     /**
@@ -46,16 +50,110 @@ class ContribuyenteController extends Controller
      */
     public function edit(string $id)
     {
-        return view('contribuyentes.edit', compact('contribuyente'));
+        $usuario = auth()->user()->name;
+        $contribuyente = Contribuyente::find($id);
+        if (!$contribuyente) {
+            return redirect()->route('home');
+        }
+        return view('contribuyentes.edit', compact(['contribuyente', 'usuario']));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(StoreContribuyenteRequest $request)
+    {
+        if (!EmailValidator::isValidEmail($request->email)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El correo electrónico no es válido.',
+            ]);
+        }
+
+        $data = $this->processRequestData($request);
+
+        $contribuyente = Contribuyente::create($data);
+
+        if ($contribuyente) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Contribuyente creado con éxito.',
+                'data' => $request->all()
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear el contribuyente.',
+            ], 500);
+        }
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(StoreContribuyenteRequest $request, string $id)
+    {   
+        if (!EmailValidator::isValidEmail($request->email)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El correo electrónico no es válido.',
+            ]);
+        }
+
+        $contribuyente = Contribuyente::find($id);
+        if ($contribuyente) {
+            $data = $this->processRequestData($request);
+
+            $contribuyente->update($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Contribuyente actualizado con éxito.',
+                'data' => $request->all()
+            ]);
+        }
+        return response()->json([
+            'success' => false,
+            'message' => 'Contribuyente no encontrado.',
+        ], 404);
+    }
+
+    /**
+     * Process request data for storing or updating a contribuyente.
+     */
+    private function processRequestData(StoreContribuyenteRequest $request)
     {
-        $contribuyente->update($request->all());
-        return redirect()->route('contribuyentes.index');
+        if ($request->tipo_documento === 'NIT') {
+            // Dividir la razón social por espacios
+            $nombre_completo = $request->validated('razon_social');
+            $partes = explode(' ', $nombre_completo);
+
+            if (count($partes) > 2) {
+                // Asignar las primeras palabras a nombres y las últimas dos a apellidos
+                $nombres = implode(' ', array_slice($partes, 0, count($partes) - 2));
+                $apellidos = implode(' ', array_slice($partes, -2));
+            } else {
+                // Manejo en caso de tener menos de 3 palabras
+                $nombres = $partes[0];
+                $apellidos = isset($partes[1]) ? $partes[1] : '';
+            }
+        } else {
+            // Manejo estándar para CC
+            $nombres = $request->nombres;
+            $apellidos = $request->apellidos;
+        }
+
+        return [
+            'tipo_documento' => $request->validated('tipo_documento'),
+            'documento' => $request->validated('documento'),
+            'nombres' => $nombres,
+            'apellidos' => $apellidos,
+            'direccion' => $request->validated('direccion'),
+            'telefono' => $request->validated('telefono'),
+            'celular' => $request->validated('celular'),
+            'email' => $request->validated('email'),
+            'usuario' => auth()->user()->name,
+        ];
     }
 
     /**
@@ -63,7 +161,10 @@ class ContribuyenteController extends Controller
      */
     public function destroy(string $id)
     {
-        $contribuyente->delete();
-        return redirect()->route('contribuyentes.index');
+        $contribuyente = Contribuyente::find($id);
+        if ($contribuyente) {
+            $contribuyente->delete();
+        }
+        return redirect()->route('home');
     }
 }

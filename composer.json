@@ -6,12 +6,14 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "caouecs/laravel-lang": "*",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
         "spatie/laravel-permission": "^6.9"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "laravel-lang/lang": "^15.8",
         "laravel/breeze": "^2.2",
         "laravel/pail": "^1.1",
         "laravel/pint": "^1.13",
@@ -25,7 +27,11 @@
             "App\\": "app/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "app/Helpers/EmailValidator.php",
+            "app/Helpers/LetterCounter.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {
