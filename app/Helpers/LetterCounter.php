@@ -7,21 +7,20 @@ class LetterCounter
     public static function countLetters($string)
     {
         // Convertir a mayúsculas, eliminar espacios y normalizar caracteres especiales
-        $string = strtoupper(str_replace(['Á', 'É', 'Í', 'Ó', 'Ú', 'Ñ'], ['A', 'E', 'I', 'O', 'U', 'N'], $string));
-        $string = preg_replace('/[^A-Z]/', '', $string); // Solo mantener letras
+       // $string = strtolower(str_replace(['á', 'é', 'í', 'ó', 'ú'], ['a', 'e', 'i', 'o', 'u'], $string));
+        $string = strtolower(str_replace(' ', '', $string)); 
 
+        $string = preg_replace('/[^\p{L}\p{N}]/u', '', $string);
         $counts = [];
-        $length = strlen($string);
-
+        $length = mb_strlen($string);
         for ($i = 0; $i < $length; $i++) {
-            $letter = $string[$i];
+            $letter = mb_substr($string, $i, 1);
             if (array_key_exists($letter, $counts)) {
                 $counts[$letter]++;
             } else {
                 $counts[$letter] = 1;
             }
         }
-
         return $counts;
     }
 }

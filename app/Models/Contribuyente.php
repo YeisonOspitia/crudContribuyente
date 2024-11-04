@@ -15,6 +15,7 @@ class Contribuyente extends Model
         'telefono',
         'celular',
         'email',
-        'usuario'
+        'usuario',
+        'nombre_completo'
     ];
 }

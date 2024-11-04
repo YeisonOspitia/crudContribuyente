@@ -9,7 +9,9 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
-                    <form  id="userForm" method="POST" action="{{ route('usuarios.update', $usuario->id) }}">
+                    <form id="userForm" method="POST" action="{{ route('usuarios.update', $usuario->id) }}">
+                        @csrf
+                        @method('PUT')
                         <div class="mb-4">
                             <label for="name" class="block text-sm font-medium text-gray-700">{{ __('Nombre') }}</label>
                             <input type="text" name="name" id="name" class="form-input rounded-md shadow-sm mt-1 block w-full" value="{{ $usuario->name }}" required>
@@ -35,48 +37,50 @@
         </div>
     </div>
 </x-app-layout>
+
 <script>
     $(document).ready(function() {
-        $('#userForm').on('submit', function(e) {
-            e.preventDefault();
-            let isValid = true;
-            $('input[required]').each(function() {
-                if ($(this).val() === '') {
-                    isValid = false;
-                    $(this).addClass('border-red-500');
-                } else {
-                    $(this).removeClass('border-red-500');
-                }
-            });
-            if (!isValid) {
-                $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text('Por favor, completa todos los campos requeridos.');
-                return;
-            }
-            let Data = $('#userForm').serializeArray();
-            $('#userForm :input').prop('disabled', true);
+        $('#userForm').validate({
+            submitHandler: function(form) {
+                let Data = $(form).serializeArray();
+                $(form).find(':input').prop('disabled', true);
 
-            $.ajax({
-                url: "{{ route('usuarios.update', $usuario->id) }}",
-                method: "PUT", 
-                data: $.param(Data),
-                success: function(response) {
-                    if (response.success) {
-                        let successMessage = response.message ? response.message : 'Usuario editado con éxito.';
-                        $('#responseMessage').removeClass('hidden bg-red-500').addClass('bg-green-500').text(successMessage);
-                        setTimeout(function() {
-                            window.location.href = "{{ route('usuarios') }}";
-                        }, 2000);
-                    } else {
-                        let errorMessage = response.errors ? response.errors.join(', ') : (response.message ? response.message : 'Hubo un error al editar el Usuario.');
-                        $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text(errorMessage);
-                        $('#userForm :input').prop('disabled', false);
+                $.ajax({
+                    url: "{{ route('usuarios.update', $usuario->id) }}",
+                    method: "PUT",
+                    data: $.param(Data),
+                    success: function(response) {
+                        if (response.success) {
+                            let successMessage = response.message ? response.message : '{{ __("Usuario editado con éxito.") }}';
+                            Swal.fire({
+                                icon: 'success',
+                                title: '{{ __("Éxito") }}',
+                                text: successMessage,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.href = "{{ route('usuarios') }}";
+                            });
+                        } else {
+                            let errorMessage = response.errors ? response.errors.join(', ') : (response.message ? response.message : '{{ __("Hubo un error al editar el Usuario.") }}');
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __("Error") }}',
+                                text: errorMessage
+                            });
+                            $(form).find(':input').prop('disabled', false);
+                        }
+                    },
+                    error: function(response) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ __("Error") }}',
+                            text: '{{ __("Hubo un error al editar el Usuario.") }}'
+                        });
+                        $(form).find(':input').prop('disabled', false);
                     }
-                },
-                error: function(response) {
-                    $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text('Hubo un error al editar el Usuario.');
-                    $('#userForm :input').prop('disabled', false);
-                }
-            });
+                });
+            }
         });
     });
 </script>

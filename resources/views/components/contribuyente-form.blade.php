@@ -48,63 +48,104 @@
     <a href="{{ route('home') }}" class="inline-flex items-center px-4 py-2 bg-red-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-red-300 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Cancelar') }}</a>
     <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Guardar') }}</button>
 </form>
-
 <script>
     $(document).ready(function() {
+        // Mostrar/ocultar campos según tipo de documento
         $('#tipo_documento').on('change', function() {
             if ($(this).val() === 'NIT') {
                 $('#nombres-container, #apellidos-container').hide();
-                $('#nombres, #apellidos').prop('required', false);
                 $('#razon-social-container').show();
+                $('#nombres, #apellidos').prop('required', false);
                 $('#razon_social').prop('required', true);
             } else {
                 $('#nombres-container, #apellidos-container').show();
-                $('#nombres, #apellidos').prop('required', true);
                 $('#razon-social-container').hide();
+                $('#nombres, #apellidos').prop('required', true);
                 $('#razon_social').prop('required', false);
             }
-        });
+        }).trigger('change');
 
-        $('#contribuyenteForm').on('submit', function(e) {
-            e.preventDefault();
-            let isValid = true;
-            $('input[required]').each(function() {
-                if ($(this).val() === '') {
-                    isValid = false;
-                    $(this).addClass('border-red-500');
-                } else {
-                    $(this).removeClass('border-red-500');
-                }
-            });
-            if (!isValid) {
-                $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text('{{ __('Por favor, completa todos los campos requeridos.') }}');
-                return;
-            }
-            let Data = $('#contribuyenteForm').serializeArray();
-            $('#contribuyenteForm :input').prop('disabled', true);
-
-            $.ajax({
-                url: "{{ $action }}",
-                method: "{{ $method }}",
-                data: $.param(Data),
-                success: function(response) {
-                    if (response.success) {
-                        let successMessage = response.message ? response.message : '{{ __('Contribuyente creado con éxito.') }}';
-                        $('#responseMessage').removeClass('hidden bg-red-500').addClass('bg-green-500').text(successMessage);
-                        setTimeout(function() {
-                            window.location.href = "{{ route('home') }}";
-                        }, 2000);
-                    } else {
-                        let errorMessage = response.errors ? response.errors.join(', ') : (response.message ? response.message : '{{ __('Hubo un error al editar el contibuyente.') }}');
-                        $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text(errorMessage);
-                        $('#contribuyenteForm :input').prop('disabled', false);
+        // Configuración de jquery.validate
+       // Configuración de jquery.validate
+        $('#contribuyenteForm').validate({
+            errorClass: 'border-red-500', // Clase para mostrar errores en los campos
+            rules: {
+                documento: {
+                    required: true,
+                    minlength: 5
+                },
+                nombres: "required",
+                apellidos: "required",
+                razon_social: {
+                    required: function() {
+                        return $('#tipo_documento').val() === 'NIT';
                     }
                 },
-                error: function(response) {
-                    $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text('{{ __('Hubo un error al crear el contibuyente.') }}');
-                    $('#contribuyenteForm :input').prop('disabled', false);
+                direccion: "required",
+                email: {
+                    required: true,
+                    email: true
                 }
-            });
+            },
+            messages: {
+                documento: {
+                    required: '{{ __("Este campo es obligatorio.") }}',
+                    minlength: '{{ __("Debe tener al menos 5 caracteres.") }}'
+                },
+                nombres: '{{ __("Este campo es obligatorio.") }}',
+                apellidos: '{{ __("Este campo es obligatorio.") }}',
+                razon_social: '{{ __("Este campo es obligatorio.") }}',
+                direccion: '{{ __("Este campo es obligatorio.") }}',
+                email: {
+                    required: '{{ __("Este campo es obligatorio.") }}',
+                    email: '{{ __("Por favor ingresa un email válido.") }}'
+                }
+            },
+            submitHandler: function(form, event) {
+                event.preventDefault();  // Previene el envío tradicional del formulario
+
+                // Si el formulario es válido, envía los datos por AJAX
+                let Data = $(form).serializeArray();
+                $(form).find(':input').prop('disabled', true);
+
+                $.ajax({
+                    url: "{{ $action }}",
+                    method: "{{ $method }}",
+                    data: $.param(Data),
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: response.message || '{{ __("Contribuyente creado con éxito.") }}',
+                                showConfirmButton: false,
+                                timer: 2000
+                            });
+                            setTimeout(function() {
+                                window.location.href = "{{ route('home') }}";
+                            }, 2000);
+                        } else {
+                            let errorMessage = response.errors ? response.errors.join(', ') : response.message || '{{ __("Hubo un error al editar el contribuyente.") }}';
+                            Swal.fire({
+                                icon: 'error',
+                                title: '{{ __("Error") }}',
+                                text: errorMessage,
+                                confirmButtonText: '{{ __("Aceptar") }}'
+                            });
+                            $(form).find(':input').prop('disabled', false);
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: '{{ __("Error") }}',
+                            text: '{{ __("Hubo un error al crear el contribuyente.") }}',
+                            confirmButtonText: '{{ __("Aceptar") }}'
+                        });
+                        $(form).find(':input').prop('disabled', false);
+                    }
+                });
+            }
         });
+
     });
 </script>

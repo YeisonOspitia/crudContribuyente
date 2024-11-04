@@ -13,9 +13,29 @@ class ContribuyenteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $contribuyentes = Contribuyente::all();
+        $query = Contribuyente::query();
+
+        // Aplicar filtros si existen
+        if ($request->filled('tipo_documento')) {
+            $query->where('tipo_documento', $request->tipo_documento);
+        }
+
+        if ($request->filled('documento')) {
+            $query->where('documento', 'like', '%' . $request->documento . '%');
+        }
+
+        if ($request->filled('nombre')) {
+            $query->where('nombre_completo', 'like', '%' . $request->nombre . '%');
+        }
+
+        if ($request->filled('telefono')) {
+            $query->where('telefono', 'like', '%' . $request->telefono . '%');
+        }
+
+        $contribuyentes = $query->get();
+
         return view('contribuyentes.index', compact('contribuyentes'));
     }
 
@@ -37,8 +57,7 @@ class ContribuyenteController extends Controller
     {
         $contribuyente = Contribuyente::find($id);
         // Combinar nombres y apellidos y contar letras
-        $nombreCompleto = $contribuyente->nombres . ' ' . $contribuyente->apellidos;
-        $letterCounts = LetterCounter::countLetters($nombreCompleto);
+        $letterCounts = LetterCounter::countLetters($contribuyente->nombre_completo);
         if (!$contribuyente) {
             return redirect()->route('home');
         }
@@ -143,11 +162,13 @@ class ContribuyenteController extends Controller
             $apellidos = $request->apellidos;
         }
 
+        $nombre_completo = $nombres . ' ' . $apellidos;
         return [
             'tipo_documento' => $request->validated('tipo_documento'),
             'documento' => $request->validated('documento'),
             'nombres' => $nombres,
             'apellidos' => $apellidos,
+            'nombre_completo' => $nombre_completo,
             'direccion' => $request->validated('direccion'),
             'telefono' => $request->validated('telefono'),
             'celular' => $request->validated('celular'),

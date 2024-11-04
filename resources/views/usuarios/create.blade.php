@@ -35,7 +35,6 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div id="responseMessage" class="hidden p-4 mb-4 mt-4 text-sm text-white rounded-lg" role="alert"></div>
                         <a href="{{ route('usuarios') }}" class="inline-flex items-center px-4 py-2 bg-red-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:border-red-900 focus:ring ring-red-300 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Cancelar') }}</a>
                         <button type="submit" class="inline-flex items-center px-4 py-2 bg-blue-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:border-blue-900 focus:ring ring-blue-300 disabled:opacity-25 transition ease-in-out duration-150">{{ __('Guardar') }}</button>
                     </form>
@@ -46,60 +45,68 @@
 </x-app-layout>
 <script>
     $(document).ready(function() {
-        $('#userForm').on('submit', function(e) {
-            e.preventDefault();
-            let isValid = true;
-            $('input[required]').each(function() {
-                if ($(this).val() === '') {
-                    isValid = false;
-                    $(this).addClass('border-red-500');
-                } else {
-                    $(this).removeClass('border-red-500');
-                }
-            });
-
-            // Check if passwords match
-            let password = $('#password').val();
-            let passwordConfirmation = $('#password_confirmation').val();
-            if (password !== passwordConfirmation) {
-                isValid = false;
-                $('#password, #password_confirmation').addClass('border-red-500');
-                $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text('Las contraseñas no coinciden.');
-                return;
-            } else {
-                $('#password, #password_confirmation').removeClass('border-red-500');
-            }
-
-            if (!isValid) {
-                $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text('Por favor, completa todos los campos requeridos.');
-                return;
-            }
-
-            let Data = $('#userForm').serializeArray();
-            $('#userForm :input').prop('disabled', true);
-
-            $.ajax({
-                url: "{{ route('usuarios.create') }}",
-                method: "POST", 
-                data: $.param(Data),
-                success: function(response) {
-                    if (response.success) {
-                        let successMessage = response.message ? response.message : 'Usuario editado con éxito.';
-                        $('#responseMessage').removeClass('hidden bg-red-500').addClass('bg-green-500').text(successMessage);
-                        setTimeout(function() {
-                            window.location.href = "{{ route('usuarios') }}";
-                        }, 2000);
-                    } else {
-                        let errorMessage = response.errors ? response.errors.join(', ') : (response.message ? response.message : 'Hubo un error al editar el Usuario.');
-                        $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text(errorMessage);
-                        $('#userForm :input').prop('disabled', false);
-                    }
+        $('#userForm').validate({
+            rules: {
+                password: {
+                    required: true,
+                    minlength: 6
                 },
-                error: function(response) {
-                    $('#responseMessage').removeClass('hidden bg-green-500').addClass('bg-red-500').text('Hubo un error al editar el Usuario.');
-                    $('#userForm :input').prop('disabled', false);
+                password_confirmation: {
+                    required: true,
+                    equalTo: '#password'
                 }
-            });
+            },
+            messages: {
+                name: "{{ __('Por favor, ingrese su nombre') }}",
+                email: "{{ __('Por favor, ingrese un correo electrónico válido') }}",
+                password: {
+                    required: "{{ __('Por favor, ingrese una contraseña') }}",
+                    minlength: "{{ __('La contraseña debe tener al menos 6 caracteres') }}"
+                },
+                password_confirmation: {
+                    required: "{{ __('Por favor, confirme su contraseña') }}",
+                    equalTo: "{{ __('Las contraseñas no coinciden') }}"
+                }
+            },
+            submitHandler: function(form) {
+                let Data = $(form).serializeArray();
+                $(form).find(':input').prop('disabled', true);
+
+                $.ajax({
+                    url: "{{ route('usuarios.create') }}",
+                    method: "POST",
+                    data: $.param(Data),
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: "{{ __('Éxito') }}",
+                                text: response.message ? response.message : "{{ __('Usuario creado con éxito.') }}",
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.href = "{{ route('usuarios') }}";
+                            });
+                        } else {
+                            let errorMessage = response.errors ? response.errors.join(', ') : (response.message ? response.message : "{{ __('Hubo un error al crear el Usuario.') }}");
+                            Swal.fire({
+                                icon: 'error',
+                                title: "{{ __('Error') }}",
+                                text: errorMessage
+                            });
+                            $(form).find(':input').prop('disabled', false);
+                        }
+                    },
+                    error: function(response) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: "{{ __('Error') }}",
+                            text: "{{ __('Hubo un error al crear el Usuario.') }}"
+                        });
+                        $(form).find(':input').prop('disabled', false);
+                    }
+                });
+            }
         });
     });
 </script>

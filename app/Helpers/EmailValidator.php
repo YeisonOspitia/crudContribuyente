@@ -6,6 +6,7 @@ class EmailValidator
 {
     public static function isValidEmail($email)
     {
-        return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) { return false; }
+        return preg_match('/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(gov|edu|org|mil|int|.gov.co)$/i', $email);
     }
 }

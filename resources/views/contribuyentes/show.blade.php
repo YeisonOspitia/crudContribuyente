@@ -29,9 +29,9 @@
                             <label for="apellidos" class="block text-sm font-medium text-gray-700">{{ __('Apellidos') }}</label>
                             <input type="text" name="apellidos" id="apellidos" class="form-input rounded-md shadow-sm mt-1 block w-full" value="{{ $contribuyente->apellidos }}" disabled>
                         </div>
-                        <div class="mb-4 hidden" id="nit-container">
-                            <label for="nit" class="block text-sm font-medium text-gray-700">{{ __('NIT') }}</label>
-                            <input type="text" name="nit" id="nit" class="form-input rounded-md shadow-sm mt-1 block w-full" value="{{ $contribuyente->nit }}" disabled>
+                        <div class="mb-4 hidden" id="razon-social-container">
+                            <label for="razon_social" class="block text-sm font-medium text-gray-700">{{ __('NIT') }}</label>
+                            <input type="text" name="razon_social" id="razon_social" class="form-input rounded-md shadow-sm mt-1 block w-full" value="{{ optional($contribuyente)->nombres.' '.optional($contribuyente)->apellidos }}">
                         </div>
                         <div class="mb-4">
                             <label for="direccion" class="block text-sm font-medium text-gray-700">{{ __('Dirección') }}</label>
@@ -71,3 +71,23 @@
         </div>
     </div>
 </x-app-layout>
+<script>
+    $(document).ready(function() {
+        $('#tipo_documento').on('change', function() {
+            if ($(this).val() === 'NIT') {
+                $('#nombres-container, #apellidos-container').hide();
+                $('#nombres, #apellidos').prop('required', false);
+                $('#razon-social-container').show();
+                $('#razon_social').prop('required', true);
+            } else {
+                $('#nombres-container, #apellidos-container').show();
+                $('#nombres, #apellidos').prop('required', true);
+                $('#razon-social-container').hide();
+                $('#razon_social').prop('required', false);
+            }
+        });
+
+        $('#tipo_documento').trigger('change');
+       
+    });
+</script>
